@@ -32,8 +32,10 @@ module Transitions
       if new_state = transition_to_new_state(record, event, *args)
         handle_state_enter_callback record, new_state
         handle_event_fired_callback record, new_state, event
+        old_state = record.current_state
         record.update_current_state(new_state, persist)
         handle_event_success_callback record, event
+        handle_event_succeeded_callback record, old_state, event
         return true
       else
         handle_event_failed_callback record, event
@@ -76,6 +78,11 @@ module Transitions
 
     def handle_event_success_callback(record, event)
       @events[event].success.call(record) if @events[event].success
+    end
+
+    def handle_event_succeeded_callback(record, old_state, event)
+      return unless record.respond_to?(:event_succeeded, true)
+      record.send(:event_succeeded, old_state, record.current_state, event)
     end
 
     def handle_event_failed_callback(record, event)
